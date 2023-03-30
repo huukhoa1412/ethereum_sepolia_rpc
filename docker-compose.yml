@@ -1,0 +1,60 @@
+Tao file docker-compose.yml voi noi dung ben duoi
+
+##################################################
+version: "3.8"
+services:
+  geth:
+    image: ethereum/client-go:${GETH_VERSION:-v1.11.5}
+    container_name: sepolia_geth
+    ports:
+      - ${GETH_PORT_P2P:-30303}:30303/tcp # P2P TCP
+      - ${GETH_PORT_P2P:-30303}:30303/udp # P2P UDP
+    command: |
+      --sepolia
+      --http
+      --http.addr=0.0.0.0
+      --http.port=8545
+      --http.vhosts="*"
+      --http.api="db,eth,net,engine,rpc,web3"
+      --authrpc.jwtsecret="/root/jwt/jwt.hex"
+      --authrpc.addr=0.0.0.0
+      --authrpc.port=8551
+      --authrpc.vhosts="*"
+      --metrics
+      --metrics.addr=0.0.0.0
+      --metrics.port=6060
+    networks: [nodeeth]
+    volumes:
+      - ./data/geth:/root/.ethereum
+      - ./jwt:/root/jwt
+    restart: unless-stopped
+
+  lighthouse:
+    image: sigp/lighthouse:${LIGHTHOUSE_VERSION:-v3.5.1}
+    container_name: sepolia_lighthouse
+    ports:
+      - ${LIGHTHOUSE_PORT_P2P:-9000}:9000/tcp   # P2P TCP
+      - ${LIGHTHOUSE_PORT_P2P:-9000}:9000/udp   # P2P UDP
+    command: |
+      lighthouse bn
+      --network=sepolia
+      --checkpoint-sync-url=${LIGHTHOUSE_CHECKPOINT_SYNC_URL:-https://sepolia.checkpoint-sync.ethpandaops.io}
+      --execution-endpoint=http://geth:8551
+      --execution-jwt=/opt/jwt/jwt.hex
+      --datadir=/opt/app/beacon/
+      --builder=http://mev-boost:18550
+      --http
+      --http-address=0.0.0.0
+      --http-port=5052
+      --metrics
+      --metrics-address=0.0.0.0
+      --metrics-port=5054
+      --metrics-allow-origin="*"
+    networks: [nodeeth]
+    volumes:
+      - ./data/lighthouse:/opt/app/beacon
+      - ./jwt:/opt/jwt
+    restart: unless-stopped
+
+networks:
+  nodeeth:
