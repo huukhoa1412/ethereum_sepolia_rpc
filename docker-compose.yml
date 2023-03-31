@@ -1,6 +1,3 @@
-Tao file docker-compose.yml voi noi dung ben duoi
-
-##################################################
 version: "3.8"
 services:
   geth:
